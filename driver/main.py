@@ -1,6 +1,8 @@
 import sys
 import time
 import threading
+import argparse
+
 
 from PySide2.QtGui import QGuiApplication, QIcon
 from PySide2.QtQml import QQmlApplicationEngine
@@ -97,27 +99,37 @@ class Backend(QObject):
 
 
 if __name__ == '__main__':
-    app = QGuiApplication(sys.argv)
+    parser = argparse.ArgumentParser(description='Set up for m-grue-driver')
+    parser.add_argument('--gui', action=argparse.BooleanOptionalAction, default=True,help='Flag that decides whether the program will run through the command line or with our GUI')
+    args = parser.parse_args()
+    guiFlag = getattr(args, 'gui')
+    print(guiFlag)
 
-    # Added to avoid runtime warnings
-    app.setOrganizationName("Some Company")
-    app.setOrganizationDomain("somecompany.com")
-    app.setApplicationName("Amazing Application")
-    app.setWindowIcon(QIcon("images/icon.png"))
-    engine = QQmlApplicationEngine()
+    if(guiFlag):
+        app = QGuiApplication(sys.argv)
 
-    # Load QML file
-    engine.load('main.qml')
-    engine.quit.connect(app.quit)
+        # Added to avoid runtime warnings
+        app.setOrganizationName("UB CSE453")
+        app.setOrganizationDomain("ub.cse")
+        app.setApplicationName("mGRUE")
+        app.setWindowIcon(QIcon("images/icon.png"))
+        engine = QQmlApplicationEngine()
 
-    # Get QML File context
-    backend = Backend()
-    engine.rootObjects()[0].setProperty('backend', backend)
+        # Load QML file
+        engine.load('main.qml')
+        engine.quit.connect(app.quit)
 
-    backend.update_status("Awaiting Connection")
-    thread = threading.Thread(target=backend.readSerial, args=())
-    thread.start()
-    #backend.readSerial(ser)
+        # Get QML File context
+        backend = Backend()
+        engine.rootObjects()[0].setProperty('backend', backend)
 
-    sys.exit(app.exec_())
+        backend.update_status("Awaiting Connection")
+        thread = threading.Thread(target=backend.readSerial, args=())
+        thread.start()
+        sys.exit(app.exec_())
+    else:
+        print('NO GUI')
+        folder_location = input('Please enter your desired file location:')
+        print(folder_location)
+    
 
