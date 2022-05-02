@@ -29,8 +29,10 @@ class Backend(QObject):
         # Pass the current status message to QML.
         backend.currentStatus = msg
         self.status.emit(msg)
-        
-
+    
+    #This function sets the max records per file based on user input
+    def update_records(self,n):
+        backend.recordsPerFile = n
     # This function is getting data from frontend
     @Slot(str)
     def getFileLocation(self, location):
@@ -100,10 +102,12 @@ class Backend(QObject):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Set up for m-grue-driver')
-    parser.add_argument('--gui', action=argparse.BooleanOptionalAction, default=True,help='Flag that decides whether the program will run through the command line or with our GUI')
+    parser.add_argument('--gui', action=argparse.BooleanOptionalAction, default=True,help='Flag indicates whether the program will run through the command line or with our GUI')
+    parser.add_argument('records',type=int,help='Number of records per file')
     args = parser.parse_args()
     guiFlag = getattr(args, 'gui')
-    print(guiFlag)
+    recordsPerFile = getattr(args, 'records')
+
 
     if(guiFlag):
         app = QGuiApplication(sys.argv)
@@ -122,14 +126,85 @@ if __name__ == '__main__':
         # Get QML File context
         backend = Backend()
         engine.rootObjects()[0].setProperty('backend', backend)
+        backend.update_records(recordsPerFile)
 
         backend.update_status("Awaiting Connection")
         thread = threading.Thread(target=backend.readSerial, args=())
         thread.start()
         sys.exit(app.exec_())
     else:
+
         print('NO GUI')
-        folder_location = input('Please enter your desired file location:')
-        print(folder_location)
+        destinationFolder = input('Please enter your desired file location:')
+        print(destinationFolder)
+        currentStatus =""
+        with serial.Serial('COM3', 256000, timeout=1) as ser:
+            while (True):
+                stillReading    = True
+                curTime         = datetime.now().strftime("%H-%M-%S")
+                sequenceNum     = 0
+                fileCounter     = 0
+                bytesMessage    = ser.readline().decode()[:-1]     # read a '\n' terminated line, removing the \n
+
+                if bytesMessage == 'connect' and destinationFolder != "":
+                    ser.write(b'handshake')
+                    currentStatus = "Device Connected"
+                    print(currentStatus)
+                    file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+
+                    while (stillReading or currentStatus == "Paused."):       # Run while file is still being read or the reading is paused.
+                        bytesMessage = ser.readline().decode()[:-1]     # This should either be the start of a record, a new_rate command, or EOF
+
+                        if bytesMessage == 'new_rate' and currentStatus == "Paused.":     # Only update rate when paused.
+                            newBaud = ser.readline().decode()
+                            currentStatus = "Baud rate updated to " + newBaud
+                            print(currentStatus)
+                            ser.setBaudrate(newBaud)
+                        elif bytesMessage == 'pause':       # Pauses the transfer for a baud rate change
+                            currentStatus = "Paused."
+                            print(currentStatus)
+                        elif bytesMessage != "" and bytesMessage[0] == '>':     # Ensures that the first piece of data of a record is the metadata
+                            
+                            currentStatus = "Data transfer in progress...."
+                            print(currentStatus)
+                            sequence = ser.readline().decode()[:-1]
+                            if sequence != "" and sequence[0] != '>':       # Ensures that next piece of data is DNA sequence
+                                file.write(bytesMessage + "\n")
+                                file.write(sequence + "\n")
+                                whiteline = ser.readline().decode()[:-1]
+                                if whiteline == "":     # Every third line should be a blankspace
+                                    file.write("\n")
+                                else:
+                                    currentStatus = "Error, line should have been a whiteline..."
+                                    print(currentStatus)
+                                    break
+                                
+                                sequenceNum += 1        # A record has successfully been written, increment SequenceNum
+                                if sequenceNum == recordsPerFile:     # When backend.recordsPerFile records have been written, close file and start another one
+                                    file.close()
+                                    fileCounter += 1
+                                    file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                                    sequenceNum = 0
+                            else:
+                                currentStatus = "Error, line should have been a dna sequence..."
+                                print(currentStatus)
+                                break
+                        elif bytesMessage != "":        # If data is not a command, new record then it must be bad.
+                            currentStatus = "Error, Received bad line: " + bytesMessage
+                            print(currentStatus)
+                            break
+                        elif bytesMessage == "" and currentStatus == "Data transfer in progress....":     # If no data is received when not paused must be EOF
+                            stillReading = False
+                            file.close()
+                            currentStatus = "Data transfer complete! Awaiting new action..."
+                            print(currentStatus)
+
+                elif bytesMessage == 'connect' and destinationFolder == "":
+                    currentStatus = "Error, must set folder before sending data."
+                    print(currentStatus)
+                                
+
+                        
+                time.sleep(.01)
     
 
