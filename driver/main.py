@@ -6,7 +6,7 @@ import argparse
 
 from PySide2.QtGui import QGuiApplication, QIcon
 from PySide2.QtQml import QQmlApplicationEngine
-from PySide2.QtCore import QObject, Slot, Signal, QTimer
+from PySide2.QtCore import QObject, Slot, Signal
 
 from datetime import datetime
 import serial
@@ -16,7 +16,6 @@ import serial
 class Backend(QObject):
     recordsPerFile = 500        # Set max number of records that will be written to each file here
     currentStatus = ""
-    updated = Signal(str, arguments=['time'])
     status = Signal(str)
 
     def __init__(self):
@@ -33,6 +32,7 @@ class Backend(QObject):
     #This function sets the max records per file based on user input
     def update_records(self,n):
         backend.recordsPerFile = n
+
     # This function is getting data from frontend
     @Slot(str)
     def getFileLocation(self, location):
@@ -101,21 +101,35 @@ class Backend(QObject):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Set up for m-grue-driver')
-    parser.add_argument('--gui', action=argparse.BooleanOptionalAction, default=True,help='Flag indicates whether the program will run through the command line or with our GUI')
-    parser.add_argument('records',type=int,help='Number of records per file')
+    parser = argparse.ArgumentParser(prog='mGRUE-driver', description='Initialize the mGRUE Host Device Driver')
+    parser.version = '1.0'
+    parser.add_argument('destination_path',
+                        metavar='path',
+                        type=str,
+                        help='the path where record files will be saved')
+    parser.add_argument('-m',
+                        '--mode',
+                        choices=['gui', 'cli'],
+                        required=True,
+                        help='option to use program through a GUI or via Command Line')
+    parser.add_argument('-r',
+                        '--records',
+                        type=int,
+                        nargs='?',
+                        default=500,
+                        help='the number of records per file. Default 500')
     args = parser.parse_args()
-    guiFlag = getattr(args, 'gui')
-    recordsPerFile = getattr(args, 'records')
 
+    destinationFolder = args.destination_path
+    recordsPerFile = args.records
 
-    if(guiFlag):
+    if(args.mode == 'gui'):
         app = QGuiApplication(sys.argv)
 
         # Added to avoid runtime warnings
-        app.setOrganizationName("UB CSE453")
-        app.setOrganizationDomain("ub.cse")
-        app.setApplicationName("mGRUE")
+        app.setOrganizationName("UB CSE-453")
+        app.setOrganizationDomain("engineering.buffalo")
+        app.setApplicationName("mGRUE Driver")
         app.setWindowIcon(QIcon("images/icon.png"))
         engine = QQmlApplicationEngine()
 
@@ -133,12 +147,9 @@ if __name__ == '__main__':
         thread.start()
         sys.exit(app.exec_())
     else:
-
-        print('NO GUI')
-        destinationFolder = input('Please enter your desired file location:')
-        print(destinationFolder)
-        currentStatus =""
-        with serial.Serial('COM3', 256000, timeout=1) as ser:
+        print("File Destination Path: " + destinationFolder)
+        currentStatus = ""
+        with serial.Serial('/dev/pts/1', 256000, timeout=1) as ser:
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
