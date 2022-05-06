@@ -103,14 +103,8 @@ class Backend(QObject):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='mGRUE-driver', description='Initialize the mGRUE Host Device Driver')
     parser.version = '1.0'
-    parser.add_argument('destination_path',
-                        metavar='path',
-                        type=str,
-                        help='the path where record files will be saved')
-    parser.add_argument('-m',
-                        '--mode',
+    parser.add_argument('mode',
                         choices=['gui', 'cli'],
-                        required=True,
                         help='option to use program through a GUI or via Command Line')
     parser.add_argument('-r',
                         '--records',
@@ -120,7 +114,6 @@ if __name__ == '__main__':
                         help='the number of records per file. Default 500')
     args = parser.parse_args()
 
-    destinationFolder = args.destination_path
     recordsPerFile = args.records
 
     if(args.mode == 'gui'):
@@ -147,6 +140,7 @@ if __name__ == '__main__':
         thread.start()
         sys.exit(app.exec_())
     else:
+        destinationFolder = input('Please enter your desired file location:')
         print("File Destination Path: " + destinationFolder)
         currentStatus = ""
         with serial.Serial('/dev/pts/1', 256000, timeout=1) as ser:
