@@ -1,6 +1,7 @@
 import sys
 import time
 import threading
+import os
 
 from PySide2.QtGui import QGuiApplication, QIcon
 from PySide2.QtQml import QQmlApplicationEngine
@@ -37,21 +38,27 @@ class Backend(QObject):
         self.destination_folder = location[7:]
 
     def readSerial(self):
-        with serial.Serial('/dev/pts/4', 256000, timeout=1) as ser:
+        with serial.Serial('COM4', 9600, timeout=1) as ser:
+            print("Port opened, looking for device...")
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
                 sequenceNum     = 0
                 fileCounter     = 0
-                bytesMessage    = ser.readline().decode()[:-1]     # read a '\n' terminated line, removing the \n
+                bytesMessage    = ser.readline().decode()[:-2]     # read a '\n' terminated line, removing the \n
+                file            = 0
 
                 if bytesMessage == 'connect' and self.destination_folder != "":
                     ser.write(b'handshake\n')
                     self.update_status("Device Connected")
-                    file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                    
+                    if os.name == 'nt':
+                        file = open(self.destination_folder[1:] + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                    else:
+                        file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
 
                     while (stillReading or self.currentStatus == "Paused."):       # Run while file is still being read or the reading is paused.
-                        bytesMessage = ser.readline().decode()[:-1]     # This should either be the start of a record, a new_rate command, or EOF
+                        bytesMessage = ser.readline().decode()[:-2]     # This should either be the start of a record, a new_rate command, or EOF
 
                         if bytesMessage == 'new_rate' and self.currentStatus == "Paused.":     # Only update rate when paused.
                             newBaud = ser.readline().decode()
@@ -61,11 +68,11 @@ class Backend(QObject):
                             self.update_status("Paused.")
                         elif bytesMessage != "" and bytesMessage[0] == '>':     # Ensures that the first piece of data of a record is the metadata
                             self.update_status("Data transfer in progress....")
-                            sequence = ser.readline().decode()[:-1]
+                            sequence = ser.readline().decode()[:-2]
                             if sequence != "" and sequence[0] != '>':       # Ensures that next piece of data is DNA sequence
                                 file.write(bytesMessage + "\n")
                                 file.write(sequence + "\n")
-                                whiteline = ser.readline().decode()[:-1]
+                                whiteline = ser.readline().decode()[:-2]
                                 if whiteline == "":     # Every third line should be a blankspace
                                     file.write("\n")
                                 else:
@@ -76,7 +83,11 @@ class Backend(QObject):
                                 if sequenceNum == self.recordsPerFile:     # When backend.recordsPerFile records have been written, close file and start another one
                                     file.close()
                                     fileCounter += 1
-                                    file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                                    if os.name == 'nt':
+                                        file = open(self.destination_folder[1:] + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                                    else:
+                                        file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+
                                     sequenceNum = 0
                             else:
                                 self.update_status("Error, line should have been a dna sequence...")

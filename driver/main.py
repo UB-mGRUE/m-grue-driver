@@ -31,7 +31,7 @@ if __name__ == '__main__':
         destinationFolder = input('Please enter your desired file location:')
         print("File Destination Path: " + destinationFolder)
         currentStatus = ""
-        with serial.Serial('/dev/pts/3', 256000, timeout=1) as ser:
+        with serial.Serial('COM4', 9600, timeout=1) as ser:
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
