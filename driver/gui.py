@@ -12,7 +12,7 @@ import serial
 
 # Define our backend object, which we will pass to the engine object
 class Backend(QObject):
-    recordsPerFile = 500        # Set max number of records that will be written to each file here
+    recordsPerFile = 5000        # Set max number of records that will be written to each file here
     currentStatus = ""
     status = Signal(str)
 
@@ -38,7 +38,7 @@ class Backend(QObject):
         self.destination_folder = location[7:]
 
     def readSerial(self):
-        with serial.Serial('COM4', 9600, timeout=1) as ser:
+        with serial.Serial('COM4', 115200, timeout=1) as ser:
             print("Port opened, looking for device...")
             while (True):
                 stillReading    = True
@@ -47,35 +47,46 @@ class Backend(QObject):
                 fileCounter     = 0
                 bytesMessage    = ser.readline().decode()[:-2]     # read a '\n' terminated line, removing the \n
                 file            = 0
+                sequence        = 0
+                whiteline       = 0
 
                 if bytesMessage == 'connect' and self.destination_folder != "":
                     ser.write(b'handshake\n')
                     self.update_status("Device Connected")
                     
                     if os.name == 'nt':
-                        file = open(self.destination_folder[1:] + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                        file = open(self.destination_folder[1:] + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="unicode_escape")
                     else:
-                        file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w")
+                        file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8")
 
                     while (stillReading or self.currentStatus == "Paused."):       # Run while file is still being read or the reading is paused.
-                        bytesMessage = ser.readline().decode()[:-2]     # This should either be the start of a record, a new_rate command, or EOF
+                        if os.name == 'nt':
+                            bytesMessage = ser.readline().decode("unicode_escape")[:-2]     # This should either be the start of a record, a new_rate command, or EOF
+                        else:
+                            bytesMessage = ser.readline().decode()[:-2]     
 
-                        if bytesMessage == 'new_rate' and self.currentStatus == "Paused.":     # Only update rate when paused.
-                            newBaud = ser.readline().decode()
-                            self.update_status("Baud rate updated to " + newBaud)
-                            ser.setBaudrate(newBaud)
-                        elif bytesMessage == 'pause':       # Pauses the transfer for a baud rate change
+                        if bytesMessage == 'pause':       # Pauses the transfer for a baud rate change
                             self.update_status("Paused.")
                         elif bytesMessage != "" and bytesMessage[0] == '>':     # Ensures that the first piece of data of a record is the metadata
                             self.update_status("Data transfer in progress....")
-                            sequence = ser.readline().decode()[:-2]
+                            
+                            if os.name == 'nt':
+                                sequence = ser.readline().decode("unicode_escape")[:-2]
+                            else:
+                                sequence = ser.readline().decode()[:-2]   # If your still getting the crashing error in Ubuntu then switch to only using unicode_escape
+                            
                             if sequence != "" and sequence[0] != '>':       # Ensures that next piece of data is DNA sequence
-                                file.write(bytesMessage + "\n")
-                                file.write(sequence + "\n")
-                                whiteline = ser.readline().decode()[:-2]
+                                file.write(bytesMessage + "\r\n")
+                                file.write(sequence + "\r\n")
+                                if os.name == 'nt':
+                                    whiteline = ser.readline().decode("unicode_escape")[:-2]
+                                else:
+                                    whiteline = ser.readline().decode()[:-2] 
+
                                 if whiteline == "":     # Every third line should be a blankspace
                                     file.write("\n")
                                 else:
+                                    print(whiteline)
                                     self.update_status("Error, line should have been a whiteline...")
                                     return
                                 
@@ -90,6 +101,7 @@ class Backend(QObject):
 
                                     sequenceNum = 0
                             else:
+                                print(sequence)
                                 self.update_status("Error, line should have been a dna sequence...")
                                 return
                         elif bytesMessage != "":        # If data is not a command, new record then it must be bad.
@@ -99,13 +111,15 @@ class Backend(QObject):
                             stillReading = False
                             file.close()
                             self.update_status("Data transfer complete! Awaiting new action...")
+                            time.sleep(1)
+                            self.update_status("Awaiting Connection")
 
                 elif bytesMessage == 'connect' and self.destination_folder == "":
                     self.update_status("Error, must set folder before sending data.")
                                 
 
                         
-                time.sleep(.01)
+                #time.sleep(.01)
 
 
 def init(recordsPerFile):
