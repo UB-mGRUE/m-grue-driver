@@ -8,9 +8,9 @@ Window {
     width: 800
     height: 500
     id: window
-    title: "mGRUE"
+    title: "mGRUE Host Device Driver"
     color: "lightslategrey"
-    property string fileName: "Please select a file"
+    property string fileName: "Please select a location"
     property string statusMessage: ""
     property QtObject backend
 
@@ -51,7 +51,7 @@ Window {
 
                 }
                 text: "Destination Folder: " + window.fileName.substring(7)  // display current destination
-                font.pixelSize: 20
+                font.pixelSize: 24
                 font.family: "Yu Gothic UI Semilight"
                 color: "oldlace"
             }
@@ -104,7 +104,7 @@ Window {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 text: selectButton.text
-                font.pixelSize: 24
+                font.pixelSize: 32
                 color: "oldlace"
             }
             background: Rectangle {

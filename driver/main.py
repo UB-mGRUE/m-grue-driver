@@ -64,8 +64,8 @@ if __name__ == '__main__':
                         '--records',
                         type=int,
                         nargs='?',
-                        default=4000,
-                        help='the number of records per file. Default 500')
+                        default=500,
+                        help='the number of records per file. Default 500.')
     args = parser.parse_args()
 
     recordsPerFile = args.records
@@ -79,22 +79,22 @@ if __name__ == '__main__':
     else:
         open_ports = []
         count = 0
+        logging.info(f"Looking for mGRUE device...")
 
         while not open_ports:
             open_ports = serial_ports()
             time.sleep(.1)
             count += 1
-            logging.info(f"Looking for MGRUE device...")
             if count == 50:
-                print("No MGRUE device found")
-                logging.info(f"Error: no MGRUE device found")
+                logging.warning(f"no mGRUE device found")
                 time.sleep(10)
                 count = 0
+                logging.info(f"Looking for mGRUE device...")
                 
-        logging.info(f"File Destination Path: {destinationFolder}")
+        logging.info(f"File Destination Path -> {destinationFolder}")
 
-        currentStatus = "Port opened, found MGRUE device"
-        logging.info(f"Status: {currentStatus}")
+        currentStatus = "Port opened, found mGRUE device"
+        logging.info(f"{currentStatus}")
 
         with serial.Serial(open_ports[0], 921600, timeout=1) as ser:
             while (True):
@@ -113,14 +113,14 @@ if __name__ == '__main__':
                 if bytesMessage == 'connect' and destinationFolder != "":
                     ser.write(b'handshake\n')
                     currentStatus = "Device Connected"
-                    logging.info(f"Status: {currentStatus}")
+                    logging.info(f"{currentStatus}")
                     
                     if os.name == 'nt':
                         file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
                     else:
                         file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
                     currentStatus = "Data transfer in progress...."
-                    logging.info(f"Status: {currentStatus}")
+                    logging.info(f"{currentStatus}")
                     while (currentStatus != "Data transfer complete! Awaiting new action..." and \
                             currentStatus != "Transfer was stopped early. Awaiting new command..."):
                         while (currentStatus != "Data transfer complete! Awaiting new action..." and \
@@ -133,19 +133,21 @@ if __name__ == '__main__':
                                 lines[0] = leftover + lines[0]
                                 leftover = ""
 
-                            print("INFO: Bytes in waiting: %s" %(ser.in_waiting), end="\r")
+                            # print("INFO: Bytes in waiting: %s" %(ser.in_waiting), end="\r")
+                            if ser.in_waiting > 0:
+                                logging.debug("Bytes in waiting %s." %(ser.in_waiting))
                             for line in lines[:-1]:
                                 if 'done' in line:
                                     currentStatus = "Data transfer complete! Awaiting new action..."
-                                    logging.info(f"Status: {currentStatus}")
+                                    logging.info(f"{currentStatus}")
                                     file.close()         # I have no idea why on god's green earth this breaks here but not in the gui. 
                                 if 'pause' in line:       # Pauses the transfer for a baud rate change
                                     currentStatus = "Paused."
-                                    logging.info(f"Status: {currentStatus}")
-                                    lines.remove(line)
+                                    logging.info(f"{currentStatus}")
+                                    line.remove(lines)
                                 elif 'kill' in line:
                                     currentStatus = "Transfer was stopped early. Awaiting new command..."
-                                    logging.info(f"Status: {currentStatus}")
+                                    logging.info(f"{currentStatus}")
                                     file.close()
                                 else:
                                     try:
@@ -168,7 +170,7 @@ if __name__ == '__main__':
 
                             if 'done' in leftover:
                                 currentStatus = "Data transfer complete! Awaiting new action..."
-                                logging.info(f"Status: {currentStatus}")
+                                logging.info(f"{currentStatus}")
                                 file.close()
                             
                         # if currentStatus == "Paused.":
