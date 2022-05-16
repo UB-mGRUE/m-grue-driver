@@ -133,7 +133,7 @@ if __name__ == '__main__':
                                 lines[0] = leftover + lines[0]
                                 leftover = ""
 
-                            print("Bytes in waiting %s" %(ser.in_waiting), end="\r")
+                            print("INFO: Bytes in waiting: %s" %(ser.in_waiting), end="\r")
                             for line in lines[:-1]:
                                 if 'done' in line:
                                     currentStatus = "Data transfer complete! Awaiting new action..."
@@ -142,7 +142,7 @@ if __name__ == '__main__':
                                 if 'pause' in line:       # Pauses the transfer for a baud rate change
                                     currentStatus = "Paused."
                                     logging.info(f"Status: {currentStatus}")
-                                    line.remove(lines)
+                                    lines.remove(line)
                                 elif 'kill' in line:
                                     currentStatus = "Transfer was stopped early. Awaiting new command..."
                                     logging.info(f"Status: {currentStatus}")
@@ -150,18 +150,19 @@ if __name__ == '__main__':
                                 else:
                                     try:
                                         file.write(line + "\r\n")
+                                        count += 1
+                                        if count % 3 == 0 and count / 3 == recordsPerFile:
+                                            fileCounter += 1
+                                            if os.name == 'nt':
+                                                file.close()
+                                                file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
+                                            else:
+                                                file.close()
+                                                file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
+                                            count = 0
                                     except:
-                                        print("Error here: " + line)
-                                    count += 1
-                                    if count % 3 == 0 and count / 3 == recordsPerFile:
-                                        fileCounter += 1
-                                        if os.name == 'nt':
-                                            file.close()
-                                            file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
-                                        else:
-                                            file.close()
-                                            file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
-                                        count = 0
+                                        pass
+                                    
                             
                             leftover = lines[-1]
 

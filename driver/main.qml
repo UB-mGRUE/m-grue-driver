@@ -5,7 +5,7 @@ import QtQuick.Window 2.1
 
 Window {
     visible: true
-    width: 600
+    width: 800
     height: 500
     id: window
     title: "mGRUE"
