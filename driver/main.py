@@ -64,8 +64,8 @@ if __name__ == '__main__':
                         '--records',
                         type=int,
                         nargs='?',
-                        default=4000,
-                        help='the number of records per file. Default 500')
+                        default=500,
+                        help='the number of records per file. Default 500.')
     args = parser.parse_args()
 
     recordsPerFile = args.records
@@ -132,8 +132,8 @@ if __name__ == '__main__':
                             if leftover:
                                 lines[0] = leftover + lines[0]
                                 leftover = ""
-
-                            logging.info("Bytes in waiting %s" %(ser.in_waiting), end="\r")
+                            if ser.in_waiting > 0:
+                                logging.debug("Bytes in waiting %s." %(ser.in_waiting))
                             for line in lines[:-1]:
                                 if 'done' in line:
                                     currentStatus = "Data transfer complete! Awaiting new action..."
@@ -148,10 +148,11 @@ if __name__ == '__main__':
                                     logging.info(f"{currentStatus}")
                                     file.close()
                                 else:
-                                    try:
-                                        file.write(line + "\r\n")
-                                    except:
-                                        logging.error(f"There is an issue with the following line -> {line}")
+                                    # try:
+                                    #     file.write(line + "\r\n")
+                                    # except Exception as e:
+                                    #     logging.error(f"There is an issue with the following line -> {line}")
+                                    #     raise e
                                     count += 1
                                     if count % 3 == 0 and count / 3 == recordsPerFile:
                                         fileCounter += 1
