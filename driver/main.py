@@ -3,16 +3,17 @@ import logging
 import os
 import sys
 import time
-import threading
-
 
 from datetime import datetime
 import serial
 import gui
 
 
-
 def valid_path(path):
+    if path == './output':
+        if not os.path.isdir(path):
+            os.mkdir('output')
+            return path
     if os.path.isdir(path):
         return path
     else:
@@ -25,9 +26,12 @@ if __name__ == '__main__':
     parser.add_argument('mode',
                         choices=['gui', 'cli'],
                         help='option to use program through a GUI or via Command Line')
-    parser.add_argument('directory',
+    parser.add_argument('-l',
+                        '--location',
                         type=valid_path,
-                        help="destination for the records recieved by the mGRUE application")
+                        nargs='?',
+                        default='./output',
+                        help="destination for the records recieved by the mGRUE application. Default ./output")
     parser.add_argument('-r',
                         '--records',
                         type=int,
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     recordsPerFile = args.records
-    destinationFolder = args.directory
+    destinationFolder = args.location
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -46,6 +50,7 @@ if __name__ == '__main__':
 
     else:
         logging.info(f"File Destination Path: {destinationFolder}")
+
         currentStatus = "Port opened, looking for device..."
         logging.info(f"Status: {currentStatus}")
 
@@ -79,7 +84,7 @@ if __name__ == '__main__':
                         if bytesMessage == 'pause':       # Pauses the transfer for a baud rate change
                             currentStatus = "Paused."
                             logging.info(f"Status: {currentStatus}")
-                            
+
                         elif bytesMessage != "" and bytesMessage[0] == '>':     # Ensures that the first piece of data of a record is the metadata
                             currentStatus = "Data transfer in progress...."
                             logging.info(f"Status: {currentStatus}")
