@@ -8,7 +8,7 @@ Window {
     width: 600
     height: 500
     id: window
-    title: "mGRUE"
+    title: "mGRUE Host Device Driver"
     color: "lightslategrey"
     property string fileName: "Please select a location"
     property string statusMessage: ""
