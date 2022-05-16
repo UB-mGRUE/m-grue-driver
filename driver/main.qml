@@ -10,7 +10,7 @@ Window {
     id: window
     title: "mGRUE"
     color: "lightslategrey"
-    property string fileName: "Please select a file"
+    property string fileName: "Please select a location"
     property string statusMessage: ""
     property QtObject backend
 
@@ -51,7 +51,7 @@ Window {
 
                 }
                 text: "Destination Folder: " + window.fileName.substring(7)  // display current destination
-                font.pixelSize: 20
+                font.pixelSize: 24
                 font.family: "Yu Gothic UI Semilight"
                 color: "oldlace"
             }

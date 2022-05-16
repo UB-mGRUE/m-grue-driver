@@ -79,7 +79,7 @@ class Backend(QObject):
             self.update_status("Looking for MGRUE device...")
             if count == 50:
                 print("No MGRUE device found")
-                self.update_status("Error: no MGRUE device found")
+                self.update_status("no MGRUE device found")
                 time.sleep(10)
                 count = 0
 
