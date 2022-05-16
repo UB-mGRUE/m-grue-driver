@@ -95,7 +95,7 @@ if __name__ == '__main__':
         currentStatus = "Port opened, found mGRUE device"
         logging.info(f"{currentStatus}")
 
-        with serial.Serial(open_ports[0], 921600, timeout=1) as ser:
+        with serial.Serial("/dev/ttyACM0", 921600, timeout=1) as ser:
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
