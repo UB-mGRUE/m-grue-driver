@@ -154,16 +154,17 @@ if __name__ == '__main__':
                                         if 'done' not in line:
                                             logging.error(f"There is an issue with the following line -> {line}")
                                             raise e
-                                    count += 1
-                                    if count % 3 == 0 and count / 3 == recordsPerFile:
-                                        fileCounter += 1
-                                        if os.name == 'nt':
-                                            file.close()
-                                            file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
-                                        else:
-                                            file.close()
-                                            file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
-                                        count = 0
+                                    else: 
+                                        count += 1
+                                        if count % 3 == 0 and count / 3 == recordsPerFile:
+                                            fileCounter += 1
+                                            if os.name == 'nt':
+                                                file.close()
+                                                file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
+                                            else:
+                                                file.close()
+                                                file = open(destinationFolder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
+                                            count = 0
                             
                             leftover = lines[-1]
 
