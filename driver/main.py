@@ -6,7 +6,6 @@ import time
 import glob
 from datetime import datetime
 import serial
-import gui
 
 
 def valid_path(path):
