@@ -7,9 +7,10 @@ Window {
     visible: true
     width: 600
     height: 500
+    id: window
     title: "mGRUE"
     color: "lightslategrey"
-    property string fileName: ""
+    property string fileName: "Please select a file"
     property string statusMessage: ""
     property QtObject backend
 
@@ -37,12 +38,23 @@ Window {
 
         }
 
-
         Rectangle {
             id: messageSection
             anchors.fill: parent
             color: "transparent"
+            Text {
+                id: location
+                anchors {
+                    bottom: messages.top
+                    bottomMargin: 12
+                    left: messages.left
 
+                }
+                text: "Destination Folder: " + window.fileName.substring(7)  // display current destination
+                font.pixelSize: 20
+                font.family: "Yu Gothic UI Semilight"
+                color: "oldlace"
+            }
             Text {
                 id: messages
                 anchors {
@@ -67,8 +79,9 @@ Window {
             selectFolder: true
             onAccepted: {
                 backend.getFileLocation(fileDialog.fileUrls)
-                location.text = fileDialog.fileUrls[0]
-                fileName = fileDialog.fileUrls[0]
+                //location.text = "Destination Folder: "+ fileDialog.fileUrls[0]
+                window.fileName = fileDialog.fileUrls[0]
+                console.log(window.fileName.substring(7))
                 close()
             }
             onRejected: {
@@ -94,26 +107,15 @@ Window {
                 color: "oldlace"
             }
             background: Rectangle {
-                implicitWidth: 200
-                implicitHeight: 50
+                implicitWidth: 300
+                implicitHeight: 150
                 color: "#36454F"
                 radius: 8
             }
             onClicked: fileDialog.visible = true    //Opens file dialog on click
         }
 
-            Text {
-                id: location
-                anchors {
-                    top: selectButton.bottom
-                    topMargin: 12
-                    horizontalCenter: selectButton.horizontalCenter
-                }
-                text: "destination folder"  // display current destination
-                font.pixelSize: 20
-                font.family: "Yu Gothic UI Semilight"
-                color: "oldlace"
-            }
+            
         }
     }
 }
