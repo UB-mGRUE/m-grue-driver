@@ -68,21 +68,27 @@ class Backend(QObject):
                 pass
         return result
 
-    def quickReadSerial(self):
+    def readStarter(self):
         open_ports = []
         count = 0
 
         while not open_ports:
             open_ports = self.serial_ports()
-            time.sleep(1)
+            time.sleep(.1)
             count += 1
             self.update_status("Looking for MGRUE device...")
-            if count == 5:
+            if count == 50:
                 print("No MGRUE device found")
-                return
+                self.update_status("Error: no MGRUE device found")
+                time.sleep(10)
+                count = 0
 
-        with serial.Serial(open_ports[0], 921600, timeout=1) as ser:
-            self.update_status("Awaiting command from device...")
+        self.update_status("Awaiting command from device...")
+        while True:
+            self.quickReadSerial(open_ports[0])
+
+    def quickReadSerial(self, port):
+        with serial.Serial(port, 921600, timeout=1) as ser:
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
@@ -104,11 +110,18 @@ class Backend(QObject):
                         file = open(self.destination_folder[1:] + "/" + curTime + "_file" + str(fileCounter) + ".fn", "a", encoding="utf-8", errors='ignore')
                     else:
                         file = open(self.destination_folder + "/" + curTime + "_file" + str(fileCounter) + ".fn", "w", encoding="utf-8", errors='ignore')
+                    self.update_status("Data transfer in progress....")
                     while (self.currentStatus != "Data transfer complete! Awaiting new action..."):
-                        self.update_status("Data transfer in progress....")
-                        while (self.currentStatus != "Paused." and self.currentStatus != "Data transfer complete! Awaiting new action..."):
-                            
+                        while (self.currentStatus != "Data transfer complete! Awaiting new action..."):
                             bytesMessage = ser.read(ser.in_waiting).decode("utf-8", errors='replace')
+                            
+                            if self.currentStatus == "Paused.":
+                                if 'kill' in bytesMessage:
+                                    self.update_status("Transfer was stopped early. Awaiting new command...")
+                                    file.close()
+                                    return
+                                else:
+                                    self.update_status("Data transfer in progress....")
                             lines = bytesMessage.split('\n')
                             if leftover:
                                 lines[0] = leftover + lines[0]
@@ -120,8 +133,13 @@ class Backend(QObject):
                                     self.update_status("Data transfer complete! Awaiting new action...")
                                     file.close()
                                     return
-                                if 'pause' in bytesMessage:       # Pauses the transfer for a baud rate change
+                                if 'pause' in line:       # Pauses the transfer for a baud rate change
                                     self.update_status("Paused.")
+                                    lines.remove(line)
+                                elif 'kill' in line:
+                                    self.update_status("Transfer was stopped early. Awaiting new command...")
+                                    file.close()
+                                    return
                                 else:
                                     file.write(line + "\r\n")
                                     count += 1
@@ -142,11 +160,11 @@ class Backend(QObject):
                                 file.close()
                                 return
                             
-                        if self.currentStatus == "Paused.":
-                            bytesMessage = ser.readline().decode("utf-8", errors='replace')
-                            if bytesMessage:
-                                self.update_status("Data transfer in progress....")
-                                file.write(bytesMessage)
+                        # if self.currentStatus == "Paused.":
+                        #     bytesMessage = ser.readline().decode("utf-8", errors='replace')
+                        #     if bytesMessage:
+                        #         self.update_status("Data transfer in progress....")
+                        #         file.write(bytesMessage)
 
                     
 
@@ -250,7 +268,7 @@ def init(recordsPerFile):
     engine = QQmlApplicationEngine()
 
     # Load QML file
-    engine.load('main.qml')
+    engine.load(os.path.dirname(os.path.abspath(__file__)) + '/main.qml')
     engine.quit.connect(app.quit)
 
     # Get QML File context
@@ -260,6 +278,6 @@ def init(recordsPerFile):
 
     backend.update_status("Awaiting Connection")
     #thread = threading.Thread(target=backend.readSerial, args=())
-    thread = threading.Thread(target=backend.quickReadSerial, args=())
+    thread = threading.Thread(target=backend.readStarter, args=())
     thread.start()
     sys.exit(app.exec_())
