@@ -25,19 +25,20 @@ if __name__ == '__main__':
     parser.add_argument('mode',
                         choices=['gui', 'cli'],
                         help='option to use program through a GUI or via Command Line')
-    parser.add_argument('directory',
-                        type=valid_path,
-                        help="destination for the records recieved by the mGRUE application")
+    # parser.add_argument('directory',
+    #                     type=valid_path,
+    #                     help="destination for the records recieved by the mGRUE application")
     parser.add_argument('-r',
                         '--records',
                         type=int,
                         nargs='?',
-                        default=500,
+                        default=4000,
                         help='the number of records per file. Default 500')
     args = parser.parse_args()
 
     recordsPerFile = args.records
-    destinationFolder = args.directory
+    #destinationFolder = args.directory
+    destinationFolder = 0
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
