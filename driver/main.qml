@@ -28,7 +28,7 @@ Window {
             text: "mGRUE Host Device Driver"
             font.family: "Yu Gothic UI Semibold"
             font.pixelSize: 40
-            color: "#36454F"
+            color: "oldlace"
             anchors {
                 top: parent.top
                 horizontalCenter: parent.horizontalCenter
