@@ -104,7 +104,7 @@ Window {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 text: selectButton.text
-                font.pixelSize: 24
+                font.pixelSize: 32
                 color: "oldlace"
             }
             background: Rectangle {
