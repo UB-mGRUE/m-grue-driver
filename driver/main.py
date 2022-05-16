@@ -148,11 +148,12 @@ if __name__ == '__main__':
                                     logging.info(f"{currentStatus}")
                                     file.close()
                                 else:
-                                    # try:
-                                    #     file.write(line + "\r\n")
-                                    # except Exception as e:
-                                    #     logging.error(f"There is an issue with the following line -> {line}")
-                                    #     raise e
+                                    try:
+                                        file.write(line + "\r\n")
+                                    except Exception as e:
+                                        if 'done' not in line:
+                                            logging.error(f"There is an issue with the following line -> {line}")
+                                            raise e
                                     count += 1
                                     if count % 3 == 0 and count / 3 == recordsPerFile:
                                         fileCounter += 1
