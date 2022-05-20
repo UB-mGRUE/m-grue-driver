@@ -1,2 +1,2 @@
-pyside2
+pyside2; sys_platform == 'win32'
 pyserial
