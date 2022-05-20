@@ -19,6 +19,8 @@ def valid_path(path):
         raise argparse.ArgumentTypeError(f"{path} is not a valid directory")
 
 def valid_file(path):
+    if path == '':
+        raise argparse.ArgumentTypeError(f"Path cannot be empty")
     if path == './output':
         if not os.path.isdir(path):
             os.mkdir('output')
