@@ -18,6 +18,19 @@ def valid_path(path):
     else:
         raise argparse.ArgumentTypeError(f"{path} is not a valid directory")
 
+def valid_file(path):
+    if path == './output':
+        if not os.path.isdir(path):
+            os.mkdir('output')
+            return path
+    if os.path.isfile(path):
+        if path.endswith('.fn'):
+            return path
+        else:
+            raise argparse.ArgumentTypeError(f"{path} is not a valid file type")
+    else:
+        raise argparse.ArgumentTypeError(f"{path} is not a valid file")
+
 def serial_ports():
         """ Lists serial port names
 
@@ -50,7 +63,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='mGRUE-driver', description='Initialize the mGRUE Host Device Driver')
     parser.version = '1.0'
     parser.add_argument('mode',
-                        choices=['gui', 'cli'],
+                        choices=['gui', 'cli', 'transfer'],
                         default='cli',
                         help='option to use program through a GUI or via Command Line')
     parser.add_argument('-l',
@@ -59,12 +72,17 @@ if __name__ == '__main__':
                         nargs='?',
                         default='./output',
                         help="destination for the records recieved by the mGRUE application. Default ./output")
+    parser.add_argument('-f',
+                        '--file',
+                        type=valid_file,
+                        nargs='?',
+                        help="data file to replace the file that is sent to the driver")
     parser.add_argument('-r',
                         '--records',
                         type=int,
                         nargs='?',
-                        default=500,
-                        help='the number of records per file. Default 500.')
+                        default=4000,
+                        help='the number of records per file. Default 4000.')
     args = parser.parse_args()
 
     recordsPerFile = args.records
@@ -73,8 +91,52 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
     if(args.mode == 'gui'):
+        import gui
         gui.init(recordsPerFile)
+    elif(args.mode == 'transfer'):
+        open_ports = []
+        count = 0
+        logging.info(f"Looking for mGRUE device...")
 
+        while not open_ports:
+            open_ports = serial_ports()
+            time.sleep(.1)
+            count += 1
+            if count == 50:
+                logging.warning(f"no mGRUE device found")
+                time.sleep(10)
+                count = 0
+                logging.info(f"Looking for mGRUE device...")
+
+
+        currentStatus = "Port opened, found mGRUE device"
+        logging.info(f"{currentStatus}")   
+        with serial.Serial(open_ports[0], 921600, timeout=1) as ser:
+            while (True):
+                stillReading    = True
+                curTime         = datetime.now().strftime("%H-%M-%S")
+                sequenceNum     = 0
+                fileCounter     = 0
+                bytesMessage    = ser.readline().decode("utf-8", errors='replace')[:-1]     # read a '\n' terminated line, removing the \n
+                file            = 0
+                sequence        = 0
+                whiteline       = 0
+                count           = 0
+                leftover        = 0
+                lines           = []
+
+                if bytesMessage == 'connect':
+                    ser.write(b'transfer\n')
+                    currentStatus = "Device Connected"
+                    logging.info(f"{currentStatus}")
+                    with open(args.file, "r") as f:
+                        for line in f.readlines():
+                            #print(line[:-1])
+                            ser.write((line).encode("utf-8"))
+                    ser.write(b"done\n")          
+                    currentStatus = "Transfer Complete"
+                    logging.info(f"{currentStatus}")
+                    exit()
     else:
         open_ports = []
         count = 0
@@ -95,7 +157,7 @@ if __name__ == '__main__':
         currentStatus = "Port opened, found mGRUE device"
         logging.info(f"{currentStatus}")
 
-        with serial.Serial("/dev/ttyACM0", 921600, timeout=1) as ser:
+        with serial.Serial(open_ports[0], 921600, timeout=1) as ser:
             while (True):
                 stillReading    = True
                 curTime         = datetime.now().strftime("%H-%M-%S")
@@ -143,7 +205,7 @@ if __name__ == '__main__':
                                 if 'pause' in line:       # Pauses the transfer for a baud rate change
                                     currentStatus = "Paused."
                                     logging.info(f"{currentStatus}")
-                                    line.remove(lines)
+                                    lines.remove(line)
                                 elif 'kill' in line:
                                     currentStatus = "Transfer was stopped early. Awaiting new command..."
                                     logging.info(f"{currentStatus}")
