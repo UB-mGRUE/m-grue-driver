@@ -1,2 +1,5 @@
 pyside2; sys_platform == 'win32'
+python3-pyside2.qtcore; sys_platform == 'linux'
+python3-pyside2.qtgui; sys_platform == 'linux'
+python3-pyside2.qtqml; sys_platform == 'linux'
 pyserial
