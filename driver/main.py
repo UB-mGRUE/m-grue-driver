@@ -87,8 +87,12 @@ if __name__ == '__main__':
                         help='the number of records per file. Default 4000.')
     args = parser.parse_args()
 
+    if args.location == '' or args.file == '':
+        print('ERROR: Please specify a valid location and file')
+        sys.exit(1)
     recordsPerFile = args.records
     destinationFolder = args.location
+    
 
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
